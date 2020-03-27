@@ -66,7 +66,7 @@ class WebcamFetcherService(object):
             tries += 1
             time.sleep(self.wait_before_stream_reinitializing)
             if tries == self.max_attempts:
-                self.log("Error:Couldn't catch stream.\n")
+                self.log.write("Error:Couldn't catch stream.\n")
                 return stream
         return stream
 
