@@ -1,0 +1,2 @@
+Waiting_Time_Between_Attempts: 0.3                # waiting time | float
+Max_Attempts: 100                                 # Max Attempts until giving up
