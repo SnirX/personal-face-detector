@@ -54,6 +54,8 @@ class RegisterApp:
             self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
             self.window.after(self.delay, self.update)
+        else:
+            messagebox.showerror("Error connecting to camera", "Please Make sure another program not using the camera.")
 
     def from_rgb(self, rgb):
         return "#%02x%02x%02x" % rgb

@@ -4,6 +4,7 @@ import cv2
 from PIL import Image, ImageTk
 from App.register import RegisterApp
 from App.live_detect import LiveApp
+from tkinter import messagebox
 
 
 class MainApp:
@@ -11,7 +12,7 @@ class MainApp:
     LIVE = os.path.join(os.getcwd(), 'live_detect.py')
 
     def __init__(self, window, window_title):
-        self.cap = cv2.VideoCapture(0)
+        self.cap = None
         self.window = window
         self.window.title(window_title)
         image = cv2.imread(os.path.join('Images', 'main_image.PNG'))
@@ -41,12 +42,29 @@ class MainApp:
         self.window.mainloop()
 
     def register(self):
+        cv2.destroyAllWindows()
+        if self.cap is not None:
+            self.cap.release()
+        try:
+            self.cap = cv2.VideoCapture(0)
+        except Exception as e:
+            messagebox.showerror("Error connecting to camera", "Please Make sure another program not using the camera.")
+            return None
         RegisterApp(tkinter.Toplevel(), "Register", video_cap=self.cap)
 
     def live(self):
+        cv2.destroyAllWindows()
+        if self.cap is not None:
+            self.cap.release()
+        try:
+            self.cap = cv2.VideoCapture(0)
+        except Exception as e:
+            messagebox.showerror("Error connecting to camera", "Please Make sure another program not using the camera.")
+            return None
         LiveApp(tkinter.Toplevel(), cap=self.cap)
 
-    def from_rgb(self, rgb):
+    @staticmethod
+    def from_rgb(rgb):
         return "#%02x%02x%02x" % rgb
 
 
