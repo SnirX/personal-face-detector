@@ -1,0 +1,5 @@
+pip3.7 install facenet_pytorch
+pip3.7 install torch
+pip3.7 install torchvision
+pip3.7 install opencv-python
+pip3.7 install pandas
