@@ -91,17 +91,17 @@ class EmbeddingWrapper():
 
         return names, aligned
 
-    '''
-    params : 
-        img - PILImage obj
-        dest - destination of img, without its name only until parent dir.
-    '''
 
     @staticmethod
     def save_images_on_disk(imgs, dest):
         for img in imgs:
             EmbeddingWrapper.save_image_on_disk(img, dest)
 
+    '''
+    params : 
+        img - PILImage obj
+        dest - destination of img, without its name only until parent dir.
+    '''
     @staticmethod
     def save_image_on_disk(img, dest):
         os.makedirs(os.path.dirname(dest), exist_ok=True)
