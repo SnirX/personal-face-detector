@@ -3,7 +3,7 @@ import unittest
 from PIL import Image
 from torchvision import transforms
 import pathlib
-from EmbeddingWrapper import EmbeddingWrapper
+from App.Embedding.EmbeddingWrapper import EmbeddingWrapper
 import os
 
 
@@ -44,7 +44,7 @@ class EmbeddingTests(unittest.TestCase):
     def test_register_person(self, batch=False, name='mariel'):
         embedded_wrapper = EmbeddingWrapper()
         imgs = []
-        imgs_path = '{}/{}/'.format(EmbeddingWrapper.registered_images_dir,name)
+        imgs_path = os.path.join(EmbeddingWrapper.registered_images_dir, name, '')
 
         for subdir, dirs, files in os.walk(imgs_path):
             for filename in files:

@@ -1,12 +1,15 @@
+import os
 import tkinter
 from tkinter import messagebox
 import cv2
 from PIL import Image, ImageTk
+from App.Embedding.EmbeddingWrapper import EmbeddingWrapper
 
 
 class RegisterApp:
 
     def __init__(self, window, window_title, video_cap):
+        self.embedding = EmbeddingWrapper()
         self.window = window
         self.window.title(window_title)
 
@@ -33,17 +36,22 @@ class RegisterApp:
         self.window.mainloop()
 
     def snapshot(self):
+        images = []
         if self.entry.get() == '':
             messagebox.showerror("Name Error", "You must enter name to register with!")
+            return None
+        elif os.path.isdir(os.path.join(self.embedding.cropped_images_dir, self.entry.get())):
+            messagebox.showerror("Name already exists", "Error Registering. This name already exists.")
             return None
         for i in range(5):
             messagebox.showinfo("Notification", "Taking picture number {}, make sure to change positions.".format(i+1))
             ret, frame = self.vid.get_frame()
             if ret:
-                cv2.imwrite("{}_{}".format(self.entry.get(), str(i+1)) + ".jpg", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+                images.append(Image.fromarray(frame))
             else:
                 messagebox.showerror("Capture Error", "Error capturing image. Please try again.")
                 return None
+        self.embedding.register_person(name=self.entry.get(), imgs=images, batch=False)
         messagebox.showinfo("Success", "You're Registered successfully!")
 
     def update(self):

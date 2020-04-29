@@ -4,6 +4,8 @@ from tkinter import *
 from tkinter.ttk import Frame
 from PIL import Image, ImageTk
 from tkinter import messagebox
+from App.Embedding.EmbeddingWrapper import EmbeddingWrapper
+from torchvision import transforms
 
 
 def get_face_box(net, frame, conf_threshold=0.7):
@@ -40,6 +42,8 @@ class LiveApp:
         self.ageNet = cv2.dnn.readNet(age_model, age_proto)
         self.genderNet = cv2.dnn.readNet(gender_model, gender_proto)
         self.faceNet = cv2.dnn.readNet(face_model, face_proto)
+
+        self.embedding = EmbeddingWrapper()
 
         self.padding = 20
         self.MODEL_MEAN_VALUES = (78.4263377603, 87.7689143744, 114.895847746)
@@ -83,6 +87,10 @@ class LiveApp:
                         face = frame[max(0, bbox[1] - self.padding):min(bbox[3] + self.padding, frame.shape[0] - 1), max(
                             0, bbox[0] - self.padding):min(bbox[2] + self.padding, frame.shape[1] - 1)]
 
+                        face_emb = transforms.ToTensor()(Image.fromarray(cv2.resize(cv2.cvtColor(
+                            face, cv2.COLOR_BGR2RGB), (160, 160))))
+                        output, min_score, all_scores = self.embedding.who_am_i(face_emb)
+
                         blob = cv2.dnn.blobFromImage(face, 1.0, (227, 227), self.MODEL_MEAN_VALUES, swapRB=False)
                         self.genderNet.setInput(blob)
                         genderPreds = self.genderNet.forward()
@@ -92,10 +100,10 @@ class LiveApp:
                         agePreds = self.ageNet.forward()
                         age = self.ageList[agePreds[0].argmax()]
 
-                        label = "{},{}".format(gender, age)
+                        label = "{},{},{}".format(output, gender, age)
                         cv2.putText(frame_face, label, (bbox[0], bbox[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255),
                                     2, cv2.LINE_AA)
-                frame_face = cv2.cvtColor(frame_face, cv2.COLOR_BGR2RGBA)
+                frame_face = cv2.cvtColor(frame_face, cv2.COLOR_BGR2RGB)
 
                 img = Image.fromarray(frame_face).resize((760, 400))
                 imgtk = ImageTk.PhotoImage(image=img)

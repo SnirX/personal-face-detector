@@ -6,11 +6,11 @@ from torchvision.utils import save_image
 import os
 
 
-class EmbeddingWrapper():
-    images_dir = "C:/Users/Mariel.Cherkassky/Desktop/College/DL/personal-face-detector/App/Embedding/dataset"
-    cropped_images_dir = "{}/cropped".format(images_dir)
-    registered_images_dir = "{}/orig".format(images_dir)
-    test_images_dir = "{}/test".format(images_dir)
+class EmbeddingWrapper(object):
+    images_dir = os.path.join(os.path.dirname(__file__), "dataset")
+    cropped_images_dir = os.path.join(images_dir, "cropped")
+    registered_images_dir = os.path.join(images_dir, "orig")
+    test_images_dir = os.path.join(images_dir, "test")
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
     mtcnn = MTCNN(
@@ -18,9 +18,14 @@ class EmbeddingWrapper():
         thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True,
         device=device
     )
+    name2vector = {}  # the key is the name , the value is set of embeddeing vectors
+    _instance = None
 
-    def __init__(self):
-        self.name2vector = {}  # the key is the name , the value is set of embeddeing vectors
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(EmbeddingWrapper, cls).__new__(
+                cls, *args, **kwargs)
+        return cls._instance
 
     @staticmethod
     def collate_fn(x):
@@ -32,20 +37,23 @@ class EmbeddingWrapper():
 
     # load into memory images that were already cropped
     def load_cropped_images(self):
-        aligned = []
-        names = []
-        workers = 0 if os.name == 'nt' else 4
-        dataset = datasets.ImageFolder(EmbeddingWrapper.cropped_images_dir)
-        dataset.idx_to_class = {i: c for c, i in dataset.class_to_idx.items()}
-        loader = DataLoader(dataset, collate_fn=EmbeddingWrapper.collate_fn, num_workers=workers)
-        for x, y in loader:
-            print("working on image of {}".format(dataset.idx_to_class[y]))
-            x = transforms.ToTensor()(x)
-            aligned.append(x)
-            name = dataset.idx_to_class[y]
-            names.append(name)
+        try:
+            aligned = []
+            names = []
+            workers = 0 if os.name == 'nt' else 4
+            dataset = datasets.ImageFolder(EmbeddingWrapper.cropped_images_dir)
+            dataset.idx_to_class = {i: c for c, i in dataset.class_to_idx.items()}
+            loader = DataLoader(dataset, collate_fn=EmbeddingWrapper.collate_fn, num_workers=workers)
+            for x, y in loader:
+                print("working on image of {}".format(dataset.idx_to_class[y]))
+                x = transforms.ToTensor()(x)
+                aligned.append(x)
+                name = dataset.idx_to_class[y]
+                names.append(name)
 
-        self.___generate_embedding_vectors_and_save_in_mem(names, aligned)
+            self.___generate_embedding_vectors_and_save_in_mem(names, aligned)
+        except Exception as e:
+            print("error loading cropped images.")
 
     '''
     
@@ -104,10 +112,10 @@ class EmbeddingWrapper():
     '''
     @staticmethod
     def save_image_on_disk(img, dest):
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        os.makedirs(dest, exist_ok=True)
         list_files = os.listdir(dest)  # dir is your directory path
         number_files = len(list_files)
-        save_image(img, "{}/{}.jpg".format(dest, number_files + 1))
+        save_image(img, os.path.join(dest, "{}.jpg".format(number_files + 1)))
 
     '''
     The functions gets as input cropped images and labels and saves embedded vectors in memory
@@ -136,7 +144,7 @@ class EmbeddingWrapper():
 
     def register_person(self, name, imgs: list, batch=False):
         cropped_imgs = []
-        dest = "{}/{}".format(EmbeddingWrapper.cropped_images_dir, name)
+        dest = os.path.join(EmbeddingWrapper.cropped_images_dir, name)
         if batch:
             cropped_imgs, prob = EmbeddingWrapper.mtcnn(imgs, return_prob=True)
             EmbeddingWrapper.save_images_on_disk(cropped_imgs, dest)

@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 from App.register import RegisterApp
 from App.live_detect import LiveApp
 from tkinter import messagebox
+from App.Embedding.EmbeddingWrapper import EmbeddingWrapper
 
 
 class MainApp:
@@ -12,6 +13,8 @@ class MainApp:
     LIVE = os.path.join(os.getcwd(), 'live_detect.py')
 
     def __init__(self, window, window_title):
+        self.embedding = EmbeddingWrapper()
+        self.embedding.load_cropped_images()
         self.cap = None
         self.window = window
         self.window.title(window_title)
