@@ -84,14 +84,30 @@ class EmbeddingWrapper():
 
                 #  Save the cropped face
                 dest_dir_path = "{}/{}/".format(imgs_dst_dir, name)
-                os.makedirs(os.path.dirname(dest_dir_path), exist_ok=True)
-                list_files = os.listdir(dest_dir_path)  # dir is your directory path
-                number_files = len(list_files)
-                save_image(x, "{}/{}.jpg".format(dest_dir_path, number_files + 1))
+                EmbeddingWrapper.save_image_on_disk(x, dest_dir_path)
+
             else:
                 print("face wasnt detected")
 
         return names, aligned
+
+    '''
+    params : 
+        img - PILImage obj
+        dest - destination of img, without its name only until parent dir.
+    '''
+
+    @staticmethod
+    def save_images_on_disk(imgs, dest):
+        for img in imgs:
+            EmbeddingWrapper.save_image_on_disk(img, dest)
+
+    @staticmethod
+    def save_image_on_disk(img, dest):
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        list_files = os.listdir(dest)  # dir is your directory path
+        number_files = len(list_files)
+        save_image(img, "{}/{}.jpg".format(dest, number_files + 1))
 
     '''
     The functions gets as input cropped images and labels and saves embedded vectors in memory
@@ -110,6 +126,28 @@ class EmbeddingWrapper():
                 self.name2vector[name].add(embeddings[index])
             else:
                 self.name2vector[name].add(embeddings[index])
+
+    '''
+    The function register new person into our memory db.
+    params : 
+        name - name of person
+        imgs - list of images of the preson
+    '''
+
+    def register_person(self, name, imgs: list, batch=False):
+        cropped_imgs = []
+        dest = "{}/{}".format(EmbeddingWrapper.cropped_images_dir, name)
+        if batch:
+            cropped_imgs, prob = EmbeddingWrapper.mtcnn(imgs, return_prob=True)
+            EmbeddingWrapper.save_images_on_disk(cropped_imgs, dest)
+        else:
+            for img in imgs:
+                cropped_img, prob = EmbeddingWrapper.mtcnn(img, return_prob=True)
+                if cropped_img is not None:
+                    cropped_imgs.append(cropped_img)
+                    EmbeddingWrapper.save_image_on_disk(img=cropped_img, dest=dest)
+
+        self.___generate_embedding_vectors_and_save_in_mem([name] * len(cropped_imgs), cropped_imgs)
 
     '''
     The functions recognizes who is in the image (tensor)
