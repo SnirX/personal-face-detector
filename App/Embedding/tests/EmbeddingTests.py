@@ -1,10 +1,9 @@
-import glob
 import unittest
 
 from PIL import Image
 from torchvision import transforms
 import pathlib
-from app.EmbeddingWrapper import EmbeddingWrapper
+from EmbeddingWrapper import EmbeddingWrapper
 import os
 
 
@@ -34,3 +33,9 @@ class EmbeddingTests(unittest.TestCase):
                 path = pathlib.PurePath(subdir)
                 label = path.name
                 print("\n expected : [{}] \n got : [{}] \n score : {}".format(label,output,min_score))
+
+    def test_crop_images(self):
+        imgs_dst_dir = EmbeddingWrapper.cropped_images_dir
+        EmbeddingWrapper.crop_orig_images(imgs_src_dir= EmbeddingWrapper.registered_images_dir,
+                                          imgs_dst_dir= imgs_dst_dir )
+        assert len(os.listdir(imgs_dst_dir) ) != 0, "{} should have directry for each person but seems it is empty".format(imgs_dst_dir)
