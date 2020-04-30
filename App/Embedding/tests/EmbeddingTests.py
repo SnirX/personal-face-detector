@@ -5,6 +5,7 @@ from torchvision import transforms
 import pathlib
 from App.Embedding.EmbeddingWrapper import EmbeddingWrapper
 import os
+import random
 
 
 class EmbeddingTests(unittest.TestCase):
@@ -56,3 +57,15 @@ class EmbeddingTests(unittest.TestCase):
 
     def test_register_person_batch(self):
         self.test_register_person(batch=True, name='mariel_batch')
+
+    def test_flow(self):
+        embedded_wrapper = EmbeddingWrapper()
+        embedded_wrapper.load_cropped_images()
+        random_name = list(embedded_wrapper.name2vector.keys())[0]
+        random_name_cropped_imgs_path = os.path.join(embedded_wrapper.cropped_images_dir, random_name)
+        random_img_name = random.choice(os.listdir(random_name_cropped_imgs_path))
+        print(os.path.join(random_name_cropped_imgs_path, random_img_name))
+        img = Image.open(os.path.join(random_name_cropped_imgs_path, random_img_name))
+        print("chose image of {}".format(random_name))
+        embedded_vector = embedded_wrapper.register_person(name=random_name, imgs=[img])
+        assert embedded_vector in embedded_wrapper.name2vector[random_name]

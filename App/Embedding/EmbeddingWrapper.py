@@ -1,3 +1,5 @@
+import traceback
+
 from facenet_pytorch import InceptionResnetV1, MTCNN
 import torch
 from torch.utils.data import DataLoader
@@ -54,6 +56,7 @@ class EmbeddingWrapper(object):
             self.___generate_embedding_vectors_and_save_in_mem(names, aligned)
         except Exception as e:
             print("error loading cropped images.")
+            print(traceback.format_exc())
 
     '''
     
@@ -99,7 +102,6 @@ class EmbeddingWrapper(object):
 
         return names, aligned
 
-
     @staticmethod
     def save_images_on_disk(imgs, dest):
         for img in imgs:
@@ -110,6 +112,7 @@ class EmbeddingWrapper(object):
         img - PILImage obj
         dest - destination of img, without its name only until parent dir.
     '''
+
     @staticmethod
     def save_image_on_disk(img, dest):
         os.makedirs(dest, exist_ok=True)
@@ -131,9 +134,9 @@ class EmbeddingWrapper(object):
             name = names[index]
             if name not in self.name2vector:
                 self.name2vector[name] = set()
-                self.name2vector[name].add(embeddings[index])
-            else:
-                self.name2vector[name].add(embeddings[index])
+            # print("name : {} , vector : {}".format(name, embeddings[index]))
+            self.name2vector[name].add(embeddings[index])
+        return embeddings
 
     '''
     The function register new person into our memory db.
@@ -154,8 +157,12 @@ class EmbeddingWrapper(object):
                 if cropped_img is not None:
                     cropped_imgs.append(cropped_img)
                     EmbeddingWrapper.save_image_on_disk(img=cropped_img, dest=dest)
+        if len(cropped_imgs) == 0:
+            print("Didnt found faces in the images of the person,nothing to register")
+            return None
 
-        self.___generate_embedding_vectors_and_save_in_mem([name] * len(cropped_imgs), cropped_imgs)
+        print("Start calc vectors for {} images of {}".format(len(cropped_imgs),name))
+        return self.___generate_embedding_vectors_and_save_in_mem([name] * len(cropped_imgs), cropped_imgs)
 
     '''
     The functions recognizes who is in the image (tensor)
