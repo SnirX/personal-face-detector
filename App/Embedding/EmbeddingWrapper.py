@@ -39,6 +39,7 @@ class EmbeddingWrapper(object):
 
     # load into memory images that were already cropped
     def load_cropped_images(self):
+        print("\n------- Starting loading cropped images--------")
         try:
             aligned = []
             names = []
@@ -58,14 +59,19 @@ class EmbeddingWrapper(object):
             print("error loading cropped images.")
             print(traceback.format_exc())
 
+        print("------- Finished loading cropped images--------")
+
     '''
     
     '''
 
     def load_orig_images(self):
+        print("\n------- Starting loading orig images--------")
         names, cropped_images = self.crop_orig_images(EmbeddingWrapper.registered_images_dir,
                                                       EmbeddingWrapper.cropped_images_dir)
         self.___generate_embedding_vectors_and_save_in_mem(names, cropped_images)
+        print("------- Finished loading orig images--------")
+
 
     '''
     The functions crops all images in registered_images_dir directory and saves them in cropped_images_dir

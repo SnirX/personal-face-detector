@@ -6,7 +6,7 @@ import pathlib
 from App.Embedding.EmbeddingWrapper import EmbeddingWrapper
 import os
 import random
-
+import numpy as np
 
 class EmbeddingTests(unittest.TestCase):
 
@@ -61,11 +61,19 @@ class EmbeddingTests(unittest.TestCase):
     def test_flow(self):
         embedded_wrapper = EmbeddingWrapper()
         embedded_wrapper.load_cropped_images()
-        random_name = list(embedded_wrapper.name2vector.keys())[0]
-        random_name_cropped_imgs_path = os.path.join(embedded_wrapper.cropped_images_dir, random_name)
-        random_img_name = random.choice(os.listdir(random_name_cropped_imgs_path))
-        print(os.path.join(random_name_cropped_imgs_path, random_img_name))
-        img = Image.open(os.path.join(random_name_cropped_imgs_path, random_img_name))
+        names_in_registered_dir = os.listdir(EmbeddingWrapper.registered_images_dir)
+        loaded_names = list(embedded_wrapper.name2vector.keys())
+        names_that_werent_loaded = np.setdiff1d(names_in_registered_dir,loaded_names) # check what names werent loaded
+        assert names_that_werent_loaded is not None and len(names_that_werent_loaded)>0, "there must be at least one name that shouldnt be loaded from cropped in order to use it as a new user for register "
+        random_name = random.choice(names_that_werent_loaded) # choose random person that wasnt loaded into memory
+        random_name_registered_imgs_path = os.path.join(embedded_wrapper.registered_images_dir, random_name)
+        random_img_name = random.choice(os.listdir(random_name_registered_imgs_path))
+        print(os.path.join(random_name_registered_imgs_path, random_img_name))
+        img = Image.open(os.path.join(random_name_registered_imgs_path, random_img_name))
         print("chose image of {}".format(random_name))
         embedded_vector = embedded_wrapper.register_person(name=random_name, imgs=[img])
-        assert embedded_vector in embedded_wrapper.name2vector[random_name]
+        img,prob = EmbeddingWrapper.mtcnn(img, return_prob=True)
+        print(type(img))
+        min_name, min_avg, scores = embedded_wrapper.who_am_i(img)
+        print(min_name,scores)
+        assert min_name == random_name, "who_am_i returned wrong name"
