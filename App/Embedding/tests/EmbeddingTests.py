@@ -60,19 +60,25 @@ class EmbeddingTests(unittest.TestCase):
 
     def test_flow(self):
         embedded_wrapper = EmbeddingWrapper()
-        embedded_wrapper.load_cropped_images()
+        #embedded_wrapper.load_cropped_images()
         names_in_registered_dir = os.listdir(EmbeddingWrapper.registered_images_dir)
         loaded_names = list(embedded_wrapper.name2vector.keys())
-        names_that_werent_loaded = np.setdiff1d(names_in_registered_dir,loaded_names) # check what names werent loaded
+        # check what names werent loaded
+        names_that_werent_loaded = np.setdiff1d(names_in_registered_dir,loaded_names)
         assert names_that_werent_loaded is not None and len(names_that_werent_loaded)>0, "there must be at least one name that shouldnt be loaded from cropped in order to use it as a new user for register "
-        random_name = random.choice(names_that_werent_loaded) # choose random person that wasnt loaded into memory
+        # choose random person that wasnt loaded into memory
+        random_name = random.choice(names_that_werent_loaded)
         random_name_registered_imgs_path = os.path.join(embedded_wrapper.registered_images_dir, random_name)
-        random_img_name = random.choice(os.listdir(random_name_registered_imgs_path))
-        print(os.path.join(random_name_registered_imgs_path, random_img_name))
-        img = Image.open(os.path.join(random_name_registered_imgs_path, random_img_name))
+        assert len(os.listdir(random_name_registered_imgs_path)) > 1, 'make sure that each person has at least 2 pictures'
+        image_for_register_name = os.listdir(random_name_registered_imgs_path)[0]
+        image_for_prediction_name = os.listdir(random_name_registered_imgs_path)[1]
+        print(image_for_register_name)
+        print(image_for_prediction_name)
+        img_for_register = Image.open(os.path.join(random_name_registered_imgs_path, image_for_register_name))
+        img_for_prediction = Image.open(os.path.join(random_name_registered_imgs_path, image_for_prediction_name))
         print("chose image of {}".format(random_name))
-        embedded_vector = embedded_wrapper.register_person(name=random_name, imgs=[img])
-        img,prob = EmbeddingWrapper.mtcnn(img, return_prob=True)
+        embedded_vector = embedded_wrapper.register_person(name=random_name, imgs=[img_for_register])
+        img,prob = EmbeddingWrapper.mtcnn(img_for_prediction, return_prob=True)
         print(type(img))
         min_name, min_avg, scores = embedded_wrapper.who_am_i(img)
         print(min_name,scores)
