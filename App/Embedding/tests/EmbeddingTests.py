@@ -74,7 +74,7 @@ class EmbeddingTests(unittest.TestCase):
         image_for_prediction_name = os.listdir(random_name_registered_imgs_path)[1]
         print(image_for_register_name)
         print(image_for_prediction_name)
-        img_for_register = Image.open(os.path.join(random_name_registered_imgs_path, image_for_register_name))
+        img_for_register = np.array(Image.open(os.path.join(random_name_registered_imgs_path, image_for_register_name)))
         img_for_prediction = Image.open(os.path.join(random_name_registered_imgs_path, image_for_prediction_name))
         print("chose image of {}".format(random_name))
         embedded_vector = embedded_wrapper.register_person(name=random_name, imgs=[img_for_register])

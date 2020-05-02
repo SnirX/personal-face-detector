@@ -30,6 +30,7 @@ def get_face_box(net, frame, conf_threshold=0.7):
             cv2.rectangle(frame_opencv_dnn, (x1, y1), (x2, y2), (0, 255, 0), int(round(frame_height / 150)), 8)
     return frame_opencv_dnn, bboxes
 
+
 class EmbeddingWrapper(object):
     images_dir = os.path.join(os.path.dirname(__file__), "dataset")
     cropped_images_dir = os.path.join(images_dir, "cropped")
@@ -37,8 +38,10 @@ class EmbeddingWrapper(object):
     test_images_dir = os.path.join(images_dir, "test")
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
-    face_proto = "AgeGender/opencv_face_detector.pbtxt"
-    face_model = "AgeGender/opencv_face_detector_uint8.pb"
+    face_proto = os.path.join(os.path.abspath(os.path.join('../..')), os.path.join(
+        "AgeGender", "opencv_face_detector.pbtxt"))
+    face_model = os.path.join(os.path.abspath(os.path.join('../..')), os.path.join(
+        "AgeGender", "opencv_face_detector_uint8.pb"))
     faceNet = cv2.dnn.readNet(face_model, face_proto)
     mtcnn = MTCNN(
         image_size=160, margin=0, min_face_size=20,
