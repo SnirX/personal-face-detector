@@ -1,12 +1,34 @@
 import traceback
 
+from PIL import Image
 from facenet_pytorch import InceptionResnetV1, MTCNN
 import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from torchvision.utils import save_image
 import os
+import cv2
 
+
+def get_face_box(net, frame, conf_threshold=0.7):
+    frame_opencv_dnn = frame.copy()
+    frame_height = frame_opencv_dnn.shape[0]
+    frame_width = frame_opencv_dnn.shape[1]
+    blob = cv2.dnn.blobFromImage(frame_opencv_dnn, 1.0, (300, 300), [104, 117, 123], True, False)
+
+    net.setInput(blob)
+    detections = net.forward()
+    bboxes = []
+    for i in range(detections.shape[2]):
+        confidence = detections[0, 0, i, 2]
+        if confidence > conf_threshold:
+            x1 = int(detections[0, 0, i, 3] * frame_width)
+            y1 = int(detections[0, 0, i, 4] * frame_height)
+            x2 = int(detections[0, 0, i, 5] * frame_width)
+            y2 = int(detections[0, 0, i, 6] * frame_height)
+            bboxes.append([x1, y1, x2, y2])
+            cv2.rectangle(frame_opencv_dnn, (x1, y1), (x2, y2), (0, 255, 0), int(round(frame_height / 150)), 8)
+    return frame_opencv_dnn, bboxes
 
 class EmbeddingWrapper(object):
     images_dir = os.path.join(os.path.dirname(__file__), "dataset")
@@ -15,6 +37,9 @@ class EmbeddingWrapper(object):
     test_images_dir = os.path.join(images_dir, "test")
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
+    face_proto = "AgeGender/opencv_face_detector.pbtxt"
+    face_model = "AgeGender/opencv_face_detector_uint8.pb"
+    faceNet = cv2.dnn.readNet(face_model, face_proto)
     mtcnn = MTCNN(
         image_size=160, margin=0, min_face_size=20,
         thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True,
@@ -159,10 +184,14 @@ class EmbeddingWrapper(object):
             EmbeddingWrapper.save_images_on_disk(cropped_imgs, dest)
         else:
             for img in imgs:
-                cropped_img, prob = EmbeddingWrapper.mtcnn(img, return_prob=True)
-                if cropped_img is not None:
-                    cropped_imgs.append(cropped_img)
-                    EmbeddingWrapper.save_image_on_disk(img=cropped_img, dest=dest)
+                frame_face, bboxes = get_face_box(self.faceNet, img)
+                if len(bboxes) == 1:
+                    # cropped_img, prob = EmbeddingWrapper.mtcnn(img, return_prob=True)
+                    face = img[max(0, bboxes[0][1] - 20):min(bboxes[0][3] + 20, img.shape[0] - 1), max(
+                        0, bboxes[0][0] - 20):min(bboxes[0][2] + 20, img.shape[1] - 1)]
+                    face = transforms.ToTensor()(Image.fromarray(cv2.resize(face, (160, 160))))
+                    cropped_imgs.append(face)
+                    EmbeddingWrapper.save_image_on_disk(img=face, dest=dest)
         if len(cropped_imgs) == 0:
             print("Didnt found faces in the images of the person,nothing to register")
             return None

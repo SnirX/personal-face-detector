@@ -47,7 +47,7 @@ class RegisterApp:
             messagebox.showinfo("Notification", "Taking picture number {}, make sure to change positions.".format(i+1))
             ret, frame = self.vid.get_frame()
             if ret:
-                images.append(Image.fromarray(frame))
+                images.append(frame)
             else:
                 messagebox.showerror("Capture Error", "Error capturing image. Please try again.")
                 return None
