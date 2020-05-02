@@ -50,7 +50,7 @@ class EmbeddingTests(unittest.TestCase):
         for subdir, dirs, files in os.walk(imgs_path):
             for filename in files:
                 filepath = subdir + os.sep + filename
-                imgs.append(Image.open(filepath))
+                imgs.append(np.array(Image.open(filepath)))
         embedded_wrapper.register_person(batch=batch, name=name, imgs=imgs)
         assert len(
             embedded_wrapper.name2vector[name]) > 0, "Expected to have vectors inside name2vector but found nothing"
