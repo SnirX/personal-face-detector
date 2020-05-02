@@ -8,7 +8,7 @@ from torchvision import datasets, transforms
 from torchvision.utils import save_image
 import os
 import cv2
-
+from App.AgeGender.pathes import face_model,face_proto
 
 def get_face_box(net, frame, conf_threshold=0.7):
     frame_opencv_dnn = frame.copy()
@@ -38,10 +38,6 @@ class EmbeddingWrapper(object):
     test_images_dir = os.path.join(images_dir, "test")
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
-    face_proto = os.path.join(os.path.abspath(os.path.join('../..')), os.path.join(
-        "AgeGender", "opencv_face_detector.pbtxt"))
-    face_model = os.path.join(os.path.abspath(os.path.join('../..')), os.path.join(
-        "AgeGender", "opencv_face_detector_uint8.pb"))
     faceNet = cv2.dnn.readNet(face_model, face_proto)
     mtcnn = MTCNN(
         image_size=160, margin=0, min_face_size=20,
