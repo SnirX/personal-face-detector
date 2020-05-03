@@ -1,6 +1,7 @@
 import unittest
 
 from PIL import Image
+from cv2 import cv2
 from torchvision import transforms
 import pathlib
 from App.Embedding.EmbeddingWrapper import EmbeddingWrapper
@@ -25,18 +26,25 @@ class EmbeddingTests(unittest.TestCase):
 
     def test_who_in_picture(self):
         embedded_wrapper = self.test_load_cropped_dataset()
+        results = dict()
         for subdir, dirs, files in os.walk(EmbeddingWrapper.test_images_dir):
+            path = pathlib.PurePath(subdir)
+            label = path.name
             for filename in files:
                 filepath = subdir + os.sep + filename
                 image_tensor = transforms.ToTensor()(Image.open(filepath))
-                output, min_score, all_scores = embedded_wrapper.who_am_i(image_tensor)
-                path = pathlib.PurePath(subdir)
-                label = path.name
-                print("\n expected : [{}] \n got : [{}] \n score : {}".format(label, output, min_score))
+                results[label] = dict()
+                results[label]['output'], results[label]['score'], results[label]['all_scores'] = embedded_wrapper.who_am_i(image_tensor)
+        for label in results.keys():
+            print("\n expected : [{}] \n got : [{}] \n score : {}".format(label, results[label]['output'], results[label]['score']))
+
+        for label in results.keys():
+           assert label == results[label]['output'], "Seems like {} was recognized as {}".format(label,results[label]['output'])
 
     def test_crop_images(self):
+        embedded_wrapper = EmbeddingWrapper()
         imgs_dst_dir = EmbeddingWrapper.cropped_images_dir
-        EmbeddingWrapper.crop_orig_images(imgs_src_dir=EmbeddingWrapper.registered_images_dir,
+        embedded_wrapper.crop_orig_images(imgs_src_dir=EmbeddingWrapper.registered_images_dir,
                                           imgs_dst_dir=imgs_dst_dir)
         assert len(
             os.listdir(imgs_dst_dir)) != 0, "{} should have directry for each person but seems it is empty".format(
@@ -51,12 +59,10 @@ class EmbeddingTests(unittest.TestCase):
             for filename in files:
                 filepath = subdir + os.sep + filename
                 imgs.append(Image.open(filepath))
-        embedded_wrapper.register_person(batch=batch, name=name, imgs=imgs)
+        embedded_wrapper.register_person(name=name, imgs=imgs)
         assert len(
             embedded_wrapper.name2vector[name]) > 0, "Expected to have vectors inside name2vector but found nothing"
 
-    def test_register_person_batch(self):
-        self.test_register_person(batch=True, name='mariel_batch')
 
     def test_flow(self):
         embedded_wrapper = EmbeddingWrapper()
@@ -74,12 +80,11 @@ class EmbeddingTests(unittest.TestCase):
         image_for_prediction_name = os.listdir(random_name_registered_imgs_path)[1]
         print(image_for_register_name)
         print(image_for_prediction_name)
-        img_for_register = np.array(Image.open(os.path.join(random_name_registered_imgs_path, image_for_register_name)))
-        img_for_prediction = Image.open(os.path.join(random_name_registered_imgs_path, image_for_prediction_name))
+        img_for_register = Image.open(os.path.join(random_name_registered_imgs_path, image_for_register_name)).convert('RGB')
+        img_for_prediction = Image.open(os.path.join(random_name_registered_imgs_path, image_for_prediction_name)).convert('RGB')
         print("chose image of {}".format(random_name))
         embedded_vector = embedded_wrapper.register_person(name=random_name, imgs=[img_for_register])
-        img,prob = EmbeddingWrapper.mtcnn(img_for_prediction, return_prob=True)
-        print(type(img))
+        img = transforms.ToTensor()(cv2.resize(np.array(img_for_prediction),(160, 160)))
         min_name, min_avg, scores = embedded_wrapper.who_am_i(img)
         print(min_name,scores)
         assert min_name == random_name, "who_am_i returned wrong name"
