@@ -32,7 +32,7 @@ class EmbeddingTests(unittest.TestCase):
             label = path.name
             for filename in files:
                 filepath = subdir + os.sep + filename
-                image_tensor = transforms.ToTensor()(Image.open(filepath))
+                image_tensor = transforms.ToTensor()(Image.open(filepath).convert('RGB'))
                 results[label] = dict()
                 results[label]['output'], results[label]['score'], results[label]['all_scores'] = embedded_wrapper.who_am_i(image_tensor)
         for label in results.keys():
@@ -58,9 +58,8 @@ class EmbeddingTests(unittest.TestCase):
         for subdir, dirs, files in os.walk(imgs_path):
             for filename in files:
                 filepath = subdir + os.sep + filename
-                imgs.append(Image.open(filepath))
+                imgs.append(Image.open(filepath).convert('RGB'))
         embedded_wrapper.register_person(name=name, imgs=imgs)
-
         assert len(
             embedded_wrapper.name2vector[name]) > 0, "Expected to have vectors inside name2vector but found nothing"
 
