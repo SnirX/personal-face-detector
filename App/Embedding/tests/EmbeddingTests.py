@@ -60,6 +60,7 @@ class EmbeddingTests(unittest.TestCase):
                 filepath = subdir + os.sep + filename
                 imgs.append(Image.open(filepath))
         embedded_wrapper.register_person(name=name, imgs=imgs)
+
         assert len(
             embedded_wrapper.name2vector[name]) > 0, "Expected to have vectors inside name2vector but found nothing"
 
