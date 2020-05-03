@@ -61,7 +61,7 @@ class EmbeddingWrapper(object):
         print("------- Finished loading cropped images--------")
 
     '''
-    
+
     '''
 
     def load_orig_images(self):
@@ -92,16 +92,15 @@ class EmbeddingWrapper(object):
 
             _, faces, _ = self.faceNet.get_face_box(x)
             if faces:
-                x = faces[0]
-                x = transforms.ToTensor()(Image.fromarray(cv2.resize(x,(160, 160))))
-                print('Face was detected')
-                aligned.append(x)
                 name = dataset.idx_to_class[y]
                 names.append(name)
+                x = faces[0]
+                dest_dir_path = os.path.join(imgs_dst_dir, name)
+                EmbeddingWrapper.save_image_on_disk(cv2.resize(x, (160, 160)), dest_dir_path)
+                x = transforms.ToTensor()(Image.fromarray(cv2.resize(x, (160, 160))))
+                print('Face was detected')
+                aligned.append(x)
 
-                #  Save the cropped face
-                dest_dir_path = "{}/{}/".format(imgs_dst_dir, name)
-                EmbeddingWrapper.save_image_on_disk(x, dest_dir_path)
 
             else:
                 print("face wasnt detected")
@@ -124,7 +123,11 @@ class EmbeddingWrapper(object):
         os.makedirs(dest, exist_ok=True)
         list_files = os.listdir(dest)  # dir is your directory path
         number_files = len(list_files)
-        save_image(img, os.path.join(dest, "{}.jpg".format(number_files + 1)))
+        from PIL import Image
+        import numpy as np
+        img = Image.fromarray(img)
+        img.save(os.path.join(dest, "{}.jpg".format(number_files + 1)))
+        # save_image(img, os.path.join(dest, "{}.jpg".format(number_files + 1)))
 
     '''
     The functions gets as input cropped images and labels and saves embedded vectors in memory
@@ -157,15 +160,18 @@ class EmbeddingWrapper(object):
 
         for img in imgs:
             _, faces, _ = self.faceNet.get_face_box(img)
-            if faces:
+            if faces and len(faces) == 1:
                 face = faces[0]
-                face = transforms.ToTensor()(
-                    Image.fromarray(cv2.resize(face, (160, 160))))
-                cropped_imgs.append(face)
+                face = cv2.resize(face, (160, 160))
+                cropped_imgs.append(transforms.ToTensor()(Image.fromarray(face)))
                 EmbeddingWrapper.save_image_on_disk(img=face, dest=dest)
 
-        if len(cropped_imgs) == 0:
+        if len(cropped_imgs) == 0 and faces:
             print("Didnt found faces in the images of the person,nothing to register")
+            return None
+
+        if len(faces) > 1:
+            print("Please make sure that the images have only one face inside")
             return None
 
         print("Start calc vectors for {} images of {}".format(len(cropped_imgs), name))
@@ -180,6 +186,7 @@ class EmbeddingWrapper(object):
             min_avg - the min avg distance
             scores - dict of scores 
     '''
+
     def who_am_i(self, tensor: torch.Tensor, threshold=0.8) -> (str, float, dict):
         assert tensor.size() == (3, 160, 160), "input tensor to function should be in the following dims : (3,160,160)"
         tensor = torch.stack([tensor]).to(EmbeddingWrapper.device)
