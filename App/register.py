@@ -51,7 +51,7 @@ class RegisterApp:
             else:
                 messagebox.showerror("Capture Error", "Error capturing image. Please try again.")
                 return None
-        self.embedding.register_person(name=self.entry.get(), imgs=images, batch=False)
+        self.embedding.register_person(name=self.entry.get(), imgs=images)
         messagebox.showinfo("Success", "You're Registered successfully!")
 
     def update(self):
