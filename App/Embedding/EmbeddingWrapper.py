@@ -32,6 +32,16 @@ class EmbeddingWrapper(object):
     def collate_fn(x):
         return x[0]
 
+    def get_labels(self):
+        return set(self.name2vector.keys())
+
+    def get_name2vector(self):
+        return self.name2vector.__str__()
+
+    def how_many_labels_were_loaded(self):
+        return len(self.name2vector)
+
+
     '''
     The function loads into memory embedded vectors that it generates from cropped images in cropped_images_dir
     '''
@@ -63,13 +73,14 @@ class EmbeddingWrapper(object):
     '''
 
     '''
-
     def load_orig_images(self):
         print("\n------- Starting loading orig images--------")
         names, cropped_images = self.crop_orig_images(EmbeddingWrapper.registered_images_dir,
                                                       EmbeddingWrapper.cropped_images_dir)
         self.___generate_embedding_vectors_and_save_in_mem(names, cropped_images)
         print("------- Finished loading orig images--------")
+
+
 
     '''
     The functions crops all images in registered_images_dir directory and saves them in cropped_images_dir
@@ -139,12 +150,15 @@ class EmbeddingWrapper(object):
     def ___generate_embedding_vectors_and_save_in_mem(self, names, cropped_images: list):
         cropped_images = torch.stack(cropped_images).to(EmbeddingWrapper.device)
         embeddings = EmbeddingWrapper.resnet(cropped_images).detach().cpu()
+        print("Start saving embeddings...")
         for index in range(embeddings.size()[0]):
             name = names[index]
             if name not in self.name2vector:
                 self.name2vector[name] = set()
             # print("name : {} , vector : {}".format(name, embeddings[index]))
             self.name2vector[name].add(embeddings[index])
+        print("Done saving embeddings...")
+
         return embeddings
 
     '''

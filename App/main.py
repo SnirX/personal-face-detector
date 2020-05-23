@@ -1,5 +1,7 @@
 import os
 import tkinter
+from multiprocessing.spawn import freeze_support
+
 import cv2
 from PIL import Image, ImageTk
 from App.register import RegisterApp
@@ -71,4 +73,14 @@ class MainApp:
         return "#%02x%02x%02x" % rgb
 
 
-MainApp(tkinter.Tk(), "Personal Face Detector")
+#### API #####
+from fastapi import FastAPI
+from App.API.router import router
+import uvicorn
+app = FastAPI(title="Embedding API")
+app.include_router(router, prefix='/api/v1/embedding', tags=['embedding'])
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", port=8000, reload=True, access_log=False)
+
+# MainApp(tkinter.Tk(), "Personal Face Detector")
