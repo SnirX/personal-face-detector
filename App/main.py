@@ -4,6 +4,7 @@ import cv2
 from PIL import Image, ImageTk
 from App.register import RegisterApp
 from App.live_detect import LiveApp
+from App.fool_model import FoolModel
 from tkinter import messagebox
 from App.Embedding.EmbeddingWrapper import EmbeddingWrapper
 
@@ -34,13 +35,17 @@ class MainApp:
         btn_frame = tkinter.Frame(window, background=self.from_rgb((117, 123, 129)))
         btn_frame.place(x=0, y=50, anchor="nw", width=image.shape[1] + 4, height=50)
 
-        self.btn_register = tkinter.Button(btn_frame, text="Register", width=20, command=self.register,
+        self.btn_register = tkinter.Button(btn_frame, text="Register", width=15, command=self.register,
                                            bg=self.from_rgb((52, 61, 70)), fg="white")
         self.btn_register.pack(side="left", padx=10, pady=10, expand=True)
 
-        self.btn_live = tkinter.Button(btn_frame, text="Live Detection", width=20, command=self.live,
+        self.btn_live = tkinter.Button(btn_frame, text="Live Detection", width=15, command=self.live,
                                        bg=self.from_rgb((52, 61, 70)), fg="white")
         self.btn_live.pack(side="left", padx=10, pady=10, expand=True)
+
+        self.btn_fool = tkinter.Button(btn_frame, text="Fool Me!", width=15, command=self.fool,
+                                       bg=self.from_rgb((52, 61, 70)), fg="white")
+        self.btn_fool.pack(side="left", padx=10, pady=10, expand=True)
 
         self.window.mainloop()
 
@@ -65,6 +70,10 @@ class MainApp:
             messagebox.showerror("Error connecting to camera", "Please Make sure another program not using the camera.")
             return None
         LiveApp(tkinter.Toplevel(), cap=self.cap)
+
+    @staticmethod
+    def fool():
+        FoolModel(tkinter.Toplevel(), "Fool Model")
 
     @staticmethod
     def from_rgb(rgb):
