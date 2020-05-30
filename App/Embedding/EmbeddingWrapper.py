@@ -1,4 +1,5 @@
 import os
+import logging
 import traceback
 
 import cv2
@@ -211,6 +212,12 @@ class EmbeddingWrapper(object):
             min_name = "unknown"
 
         return min_name, min_avg, scores
+
+    def get_embeddings_by_label(self, label):
+        if label in self.name2vector.keys():
+            return self.name2vector.get(label)
+        logging.info("No embeddings for label - {}".format(label))
+        return set()
 
     def get_embedding_by_tensor(self, tensor: torch.Tensor):
         return self.resnet(tensor).detach().cpu()

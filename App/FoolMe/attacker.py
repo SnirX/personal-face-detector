@@ -23,15 +23,9 @@ class Attacker(object):
     def attack(self, cropped_image, target_label, epsilon=0.01):
         image_as_tensor = self.image_transformer.transform_img_to_tensor(cropped_image)
         embedding = self.embedding_wrapper.get_embedding_by_tensor(image_as_tensor)
-        victim_embeddings = self._get_embeddings_by_label(target_label)
+        victim_embeddings = self.embedding_wrapper.get_embeddings_by_label(target_label)
         mean_victim_embedding = self.embedding_wrapper.get_mean_embedding_of_embedding_set(victim_embeddings)
         return self._targeted_fast_gradient_sign_method(embedding, mean_victim_embedding, epsilon)
-
-    def _get_embeddings_by_label(self, label):
-        if label in self.embedding_wrapper.name2vector.keys():
-            return self.embedding_wrapper.name2vector.get(label)
-        logging.info("No embeddings for label - {}".format(label))
-        return set()
 
     def _targeted_fast_gradient_sign_method(self, embedding: torch.Tensor, victim_embedding: torch.Tensor, epsilon):
         loss = -self.loss_fn(embedding, victim_embedding)
