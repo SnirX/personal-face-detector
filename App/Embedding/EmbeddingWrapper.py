@@ -1,14 +1,15 @@
+import os
 import traceback
 
+import cv2
+import torch
 from PIL import Image
 from facenet_pytorch import InceptionResnetV1
-import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-from torchvision.utils import save_image
-import os
-import cv2
+
 from App.AgeGender.FaceModelWrapper import FaceModelWrapper
+from Utils.torch_utils import get_torch_device
 
 
 class EmbeddingWrapper(object):
@@ -16,8 +17,8 @@ class EmbeddingWrapper(object):
     cropped_images_dir = os.path.join(images_dir, "cropped")
     registered_images_dir = os.path.join(images_dir, "orig")
     test_images_dir = os.path.join(images_dir, "test")
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
+    device = get_torch_device()
+    resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device).train(False)
     faceNet = FaceModelWrapper()
     name2vector = {}  # the key is the name , the value is set of embeddeing vectors
     _instance = None
@@ -124,7 +125,6 @@ class EmbeddingWrapper(object):
         list_files = os.listdir(dest)  # dir is your directory path
         number_files = len(list_files)
         from PIL import Image
-        import numpy as np
         img = Image.fromarray(img)
         img.save(os.path.join(dest, "{}.jpg".format(number_files + 1)))
         # save_image(img, os.path.join(dest, "{}.jpg".format(number_files + 1)))
@@ -138,7 +138,7 @@ class EmbeddingWrapper(object):
 
     def ___generate_embedding_vectors_and_save_in_mem(self, names, cropped_images: list):
         cropped_images = torch.stack(cropped_images).to(EmbeddingWrapper.device)
-        embeddings = EmbeddingWrapper.resnet(cropped_images).detach().cpu()
+        embeddings = self.get_embedding_by_tensor(cropped_images)
         for index in range(embeddings.size()[0]):
             name = names[index]
             if name not in self.name2vector:
@@ -192,10 +192,11 @@ class EmbeddingWrapper(object):
         tensor = torch.stack([tensor]).to(EmbeddingWrapper.device)
         scores = {key: {'score': 0, 'avg': 0, 'num_vectors': len(self.name2vector[key])} for key in
                   self.name2vector.keys()}
-        embedded_tensor = EmbeddingWrapper.resnet(tensor).detach().cpu()
+        embedded_tensor = self.get_embedding_by_tensor(tensor)
         for key, embedded_vectors in self.name2vector.items():
             for embedded_vector in embedded_vectors:
-                scores[key]['score'] = scores[key]['score'] + (embedded_tensor - embedded_vector).norm().item()
+                scores[key]['score'] = scores[key]['score'] +\
+                                       self.get_distance_between_embeddings(embedded_tensor, embedded_vector)
 
         min_avg = 1000
         min_name = ""
@@ -210,3 +211,16 @@ class EmbeddingWrapper(object):
             min_name = "unknown"
 
         return min_name, min_avg, scores
+
+    def get_embedding_by_tensor(self, tensor: torch.Tensor):
+        return self.resnet(tensor).detach().cpu()
+
+    def get_mean_embedding_of_embedding_set(self, embeddings_as_set: set):
+        embeddings_sum = torch.FloatTensor([0] * 512).to(self.device)  # ResNet last layer is 512
+        for embedding in embeddings_as_set:
+            embeddings_sum += embedding
+        return embeddings_sum / len(embeddings_as_set)
+
+    @staticmethod
+    def get_distance_between_embeddings(embedding_1, embedding_2):
+        return (embedding_1 - embedding_2).norm().item()
