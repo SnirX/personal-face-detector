@@ -1,9 +1,13 @@
+import logging
 import os
 import tkinter
 from tkinter import messagebox
-import cv2
-from PIL import Image, ImageTk
 from tkinter.filedialog import askopenfilename, IntVar, Checkbutton
+
+from PIL import Image, ImageTk
+
+from App.FoolMe.attacker import Attacker
+from App.FoolMe.image_cropper import ImageCropper
 
 
 class FoolModel:
@@ -12,6 +16,8 @@ class FoolModel:
     HEIGHT = 600
 
     def __init__(self, window, window_title):
+        self.image_cropper = ImageCropper()
+        self.attacker = Attacker()
         self.window = window
         self.window.geometry("{}x{}".format(self.WIDTH, self.HEIGHT))  # set the size of the app to be 500x500
         self.window.resizable(0, 0)  # Don't allow resizing in the x or y direction
@@ -60,8 +66,11 @@ class FoolModel:
     def _update_image(self, path):
         try:
             img = Image.open(path).resize((480, 480), Image.ANTIALIAS)
-            img = ImageTk.PhotoImage(img)
-            self.image_gui.configure(image=img)
-            self.image_gui.photo_ref = img
+            tk_img = ImageTk.PhotoImage(img)
+            self.image_gui.configure(image=tk_img)
+            self.image_gui.photo_ref = tk_img
+            cropped_image_as_tensor = self.image_cropper.crop_to_tensor(img)
+            image_with_noise_as_tensor = self.attacker.attack(cropped_image_as_tensor, "Snir")
         except Exception as e:
+            logging.error("failed to update image", e)
             messagebox.showerror("Error", "Failed fetching image.")

@@ -7,6 +7,7 @@ from Utils.torch_utils import get_torch_device
 class ImageTransformer(object):
 
     device = get_torch_device()
+    _instance = None
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:

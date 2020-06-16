@@ -222,6 +222,9 @@ class EmbeddingWrapper(object):
     def get_embedding_by_tensor(self, tensor: torch.Tensor):
         return self.resnet(tensor).detach().cpu()
 
+    def get_embedding_by_tensor_without_detach(self, tensor: torch.Tensor):
+        return self.resnet(tensor)
+
     def get_mean_embedding_of_embedding_set(self, embeddings_as_set: set):
         embeddings_sum = torch.FloatTensor([0] * 512).to(self.device)  # ResNet last layer is 512
         for embedding in embeddings_as_set:
