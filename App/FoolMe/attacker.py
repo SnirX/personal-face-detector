@@ -36,7 +36,7 @@ class Attacker(object):
         requires_and_retains_grad(cropped_image_as_tensor)
         loss = self.loss_fn(embedding, victim_embedding_1_dim_added)
         loss.backward(retain_graph=True)
-        gradient_sign = embedding.grad.data.sign()
+        gradient_sign = cropped_image_as_tensor.grad.data.sign()
         image_with_noise = cropped_image_as_tensor + epsilon * gradient_sign
         clipped_image_with_noise = torch.clamp(image_with_noise, 0, 1)
         return clipped_image_with_noise
