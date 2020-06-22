@@ -15,7 +15,7 @@ embedding_wrapper = EmbeddingWrapper()
 embedding_wrapper.load_cropped_images()
 
 
-def run_pgd(target_label2='Snir', epsilon=0.045, epochs=2):
+def run_pgd(target_label='Snir', epsilon=0.045, epochs=2):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device).train(False)
 
@@ -27,10 +27,10 @@ def run_pgd(target_label2='Snir', epsilon=0.045, epochs=2):
     targets_dict2 = defaultdict(
         lambda: {"average_vector": torch.FloatTensor([[0] * 512]).to(device), "amount_of_vectors": 0})
 
-    targets_dict2_tensors = embedding_wrapper.get_embeddings_by_label(target_label2)
-    targets_dict2[target_label2]['average_vector'] = embedding_wrapper.get_mean_embedding_of_embedding_set(
+    targets_dict2_tensors = embedding_wrapper.get_embeddings_by_label(target_label)
+    targets_dict2[target_label]['average_vector'] = embedding_wrapper.get_mean_embedding_of_embedding_set(
         targets_dict2_tensors)
-    targets_dict2[target_label2]['amount_of_vectors'] = len(targets_dict2_tensors)
+    targets_dict2[target_label]['amount_of_vectors'] = len(targets_dict2_tensors)
 
     random_tensors = []
     for image, person_in_image in random_imgs_with_label:
@@ -43,7 +43,7 @@ def run_pgd(target_label2='Snir', epsilon=0.045, epochs=2):
         random_people_labels.append(tpl[1])
 
     epsilons = [epsilon]
-    target_embedded_vector2 = targets_dict2.get(target_label2).get('average_vector').unsqueeze(0)
+    target_embedded_vector2 = targets_dict2.get(target_label).get('average_vector').unsqueeze(0)
 
     titles = random_people_labels
     pgd_scores = {
@@ -55,16 +55,16 @@ def run_pgd(target_label2='Snir', epsilon=0.045, epochs=2):
     epsilon = epsilons.pop()
     is_first = True
     for epoch in range(epochs):
-        print("target : {} , epsilon : {}, epoch : {}".format(target_label2, epsilon, epoch + 1))
+        print("target : {} , epsilon : {}, epoch : {}".format(target_label, epsilon, epoch + 1))
         for tensor in random_tensors:
             image_with_noise = TFGSM(tensor, resnet, target_embedded_vector2, epsilon, requires_grad=is_first)
     images_with_noise.append(image_with_noise)
     scores = []
     score = diff_between_tensors(target_embedded_vector2, resnet(image_with_noise))
     scores.append(round(score, 4))
-    pgd_scores[target_label2][titles[0]][epsilon][epoch + 1] = score
+    pgd_scores[target_label][titles[0]][epsilon][epoch + 1] = score
     draw_tensors(images_with_noise, (5, 10), scores)
-    print("Time took for pgd on target {} : {} seconds".format(target_label2, time.time() - start_time))
+    print("Time took for pgd on target {} : {} seconds".format(target_label, time.time() - start_time))
 
 
 def load_data(directory: str) -> list:
