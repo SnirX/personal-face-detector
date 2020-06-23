@@ -4,12 +4,16 @@ import tkinter
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename, IntVar, Checkbutton
 
+import cv2
+import torch
 from PIL import Image, ImageTk
 from torchvision import transforms
 
+from App.AgeGender.FaceModelWrapper import FaceModelWrapper
 from App.FoolMe.attacker import Attacker
 from App.FoolMe.image_cropper import ImageCropper
 from App.FoolMe.notebook import run_pgd
+from App.register import MyVideoCapture
 
 
 class FoolModel:
@@ -18,6 +22,9 @@ class FoolModel:
     HEIGHT = 600
 
     def __init__(self, window, window_title):
+        self.camera = get_camera()
+        self.vid = MyVideoCapture(self.camera)
+        self.face_model_wrapper = FaceModelWrapper()
         self.image_cropper = ImageCropper()
         self.attacker = Attacker()
         self.window = window
@@ -69,13 +76,39 @@ class FoolModel:
         try:
             img = Image.open(path).resize((480, 480), Image.ANTIALIAS)
             cropped_image_as_tensor = self.image_cropper.crop_to_tensor(img)
-            # tuple2 = run_pgd(cropped_image_as_tensor) # TODO: to return
-            # tk_img = ImageTk.PhotoImage(tuple2[0]) # TODO: to return
+            image_as_tensor: torch.Tensor = transforms.ToTensor()(img)
+            image_as_numpy = image_as_tensor.cpu().detach().numpy()
+            # cropped_image = self.face_model_wrapper.get_face_box(image_as_numpy)
+            cropped_image_as_tensor = self.get_image_as_tensor_from_camera()
+            tuple2 = run_pgd(cropped_image_as_tensor) # TODO: to return
+            tk_img = ImageTk.PhotoImage(tuple2[0]) # TODO: to return
             # tk_img = ImageTk.PhotoImage(img) # TODO: original line
-            tk_img = ImageTk.PhotoImage(transforms.ToPILImage()(cropped_image_as_tensor.squeeze(0)).convert("RGB")) # TODO: original line
+            # tk_img = ImageTk.PhotoImage(
+            #     transforms.ToPILImage()(cropped_image_as_tensor.squeeze(0)).convert("RGB"))  # TODO: original line
             self.image_gui.configure(image=tk_img)
             self.image_gui.photo_ref = tk_img
-            image_with_noise_as_tensor = self.attacker.attack(cropped_image_as_tensor, "Snir")
+            # image_with_noise_as_tensor = self.attacker.attack(cropped_image_as_tensor, "Snir")
         except Exception as e:
             logging.error("failed to update image", e)
             messagebox.showerror("Error", "Failed fetching image.")
+
+    def get_image_as_tensor_from_camera(self):
+        ret, frame = self.camera.read()
+        frame_face, faces, bboxes = self.face_model_wrapper.get_face_box(frame)
+        if faces:
+            for index in range(len(faces)):
+                face = faces[index]
+                bbox = bboxes[index]
+                face_emb = transforms.ToTensor()(
+                    Image.fromarray(cv2.resize(cv2.cvtColor(face, cv2.COLOR_BGR2RGB), (160, 160))))
+                return face_emb
+        raise RuntimeError("No faces in camera")
+
+
+def get_camera():
+    try:
+        return cv2.VideoCapture(0)
+    except Exception as e:
+        messagebox.showerror("Error connecting to camera", "Please Make sure another program not using the camera.")
+        return None
+
