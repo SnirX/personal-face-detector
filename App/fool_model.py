@@ -5,9 +5,11 @@ from tkinter import messagebox
 from tkinter.filedialog import askopenfilename, IntVar, Checkbutton
 
 from PIL import Image, ImageTk
+from torchvision import transforms
 
 from App.FoolMe.attacker import Attacker
 from App.FoolMe.image_cropper import ImageCropper
+from App.FoolMe.notebook import run_pgd
 
 
 class FoolModel:
@@ -66,10 +68,13 @@ class FoolModel:
     def _update_image(self, path):
         try:
             img = Image.open(path).resize((480, 480), Image.ANTIALIAS)
-            tk_img = ImageTk.PhotoImage(img)
+            cropped_image_as_tensor = self.image_cropper.crop_to_tensor(img)
+            # tuple2 = run_pgd(cropped_image_as_tensor) # TODO: to return
+            # tk_img = ImageTk.PhotoImage(tuple2[0]) # TODO: to return
+            # tk_img = ImageTk.PhotoImage(img) # TODO: original line
+            tk_img = ImageTk.PhotoImage(transforms.ToPILImage()(cropped_image_as_tensor.squeeze(0)).convert("RGB")) # TODO: original line
             self.image_gui.configure(image=tk_img)
             self.image_gui.photo_ref = tk_img
-            cropped_image_as_tensor = self.image_cropper.crop_to_tensor(img)
             image_with_noise_as_tensor = self.attacker.attack(cropped_image_as_tensor, "Snir")
         except Exception as e:
             logging.error("failed to update image", e)

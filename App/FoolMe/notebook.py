@@ -15,22 +15,24 @@ embedding_wrapper = EmbeddingWrapper()
 embedding_wrapper.load_cropped_images()
 
 
-def run_pgd(target_label='Snir', epsilon=0.045, epochs=2):
+def run_pgd(source_tensor, target_label='Snir', epsilon=0.045, epochs=2):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device).train(False)
 
     random_imgs_path = 'images/random_people/'
 
     # Just random people..
-    random_imgs_with_label = load_data(random_imgs_path)
+    # random_imgs_with_label = load_data(random_imgs_path)
+    random_imgs_with_label = list()
+    random_imgs_with_label.append((transforms.ToPILImage()(source_tensor.squeeze(0)).convert("RGB"), 'shabi'))
 
-    targets_dict2 = defaultdict(
+    targets_dict = defaultdict(
         lambda: {"average_vector": torch.FloatTensor([[0] * 512]).to(device), "amount_of_vectors": 0})
 
-    targets_dict2_tensors = embedding_wrapper.get_embeddings_by_label(target_label)
-    targets_dict2[target_label]['average_vector'] = embedding_wrapper.get_mean_embedding_of_embedding_set(
-        targets_dict2_tensors)
-    targets_dict2[target_label]['amount_of_vectors'] = len(targets_dict2_tensors)
+    targets_dict_tensors = embedding_wrapper.get_embeddings_by_label(target_label)
+    targets_dict[target_label]['average_vector'] = embedding_wrapper.get_mean_embedding_of_embedding_set(
+        targets_dict_tensors)
+    targets_dict[target_label]['amount_of_vectors'] = len(targets_dict_tensors)
 
     random_tensors = []
     for image, person_in_image in random_imgs_with_label:
@@ -43,12 +45,12 @@ def run_pgd(target_label='Snir', epsilon=0.045, epochs=2):
         random_people_labels.append(tpl[1])
 
     epsilons = [epsilon]
-    target_embedded_vector2 = targets_dict2.get(target_label).get('average_vector').unsqueeze(0)
+    target_embedded_vector2 = targets_dict.get(target_label).get('average_vector').unsqueeze(0)
 
     titles = random_people_labels
     pgd_scores = {
         target_label: {random_label: {eps: defaultdict(lambda: float) for eps in epsilons} for random_label in titles}
-        for target_label in targets_dict2.keys()}
+        for target_label in targets_dict.keys()}
     images_with_noise = []
 
     start_time = time.time()
@@ -65,6 +67,7 @@ def run_pgd(target_label='Snir', epsilon=0.045, epochs=2):
     pgd_scores[target_label][titles[0]][epsilon][epoch + 1] = score
     draw_tensors(images_with_noise, (5, 10), scores)
     print("Time took for pgd on target {} : {} seconds".format(target_label, time.time() - start_time))
+    return transforms.ToPILImage()(image_with_noise).convert("RGB"), score
 
 
 def load_data(directory: str) -> list:
