@@ -12,7 +12,7 @@ from torchvision import transforms
 from App.AgeGender.FaceModelWrapper import FaceModelWrapper
 from App.FoolMe.attacker import Attacker
 from App.FoolMe.image_cropper import ImageCropper
-from App.FoolMe.notebook import run_pgd
+from App.FoolMe.pgd import run_pgd
 from App.register import MyVideoCapture
 
 
@@ -75,19 +75,12 @@ class FoolModel:
     def _update_image(self, path):
         try:
             img = Image.open(path).resize((480, 480), Image.ANTIALIAS)
-            cropped_image_as_tensor = self.image_cropper.crop_to_tensor(img)
-            image_as_tensor: torch.Tensor = transforms.ToTensor()(img)
-            image_as_numpy = image_as_tensor.cpu().detach().numpy()
-            # cropped_image = self.face_model_wrapper.get_face_box(image_as_numpy)
-            cropped_image_as_tensor = self.get_image_as_tensor_from_camera()
-            tuple2 = run_pgd(cropped_image_as_tensor) # TODO: to return
-            tk_img = ImageTk.PhotoImage(tuple2[0]) # TODO: to return
             # tk_img = ImageTk.PhotoImage(img) # TODO: original line
-            # tk_img = ImageTk.PhotoImage(
-            #     transforms.ToPILImage()(cropped_image_as_tensor.squeeze(0)).convert("RGB"))  # TODO: original line
+            cropped_image_as_tensor = self.get_image_as_tensor_from_camera()
+            tuple2 = run_pgd(cropped_image_as_tensor)  # TODO: to return
+            tk_img = ImageTk.PhotoImage(tuple2[0])  # TODO: to return
             self.image_gui.configure(image=tk_img)
             self.image_gui.photo_ref = tk_img
-            # image_with_noise_as_tensor = self.attacker.attack(cropped_image_as_tensor, "Snir")
         except Exception as e:
             logging.error("failed to update image", e)
             messagebox.showerror("Error", "Failed fetching image.")
@@ -111,4 +104,3 @@ def get_camera():
     except Exception as e:
         messagebox.showerror("Error connecting to camera", "Please Make sure another program not using the camera.")
         return None
-

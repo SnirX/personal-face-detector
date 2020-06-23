@@ -1,24 +1,21 @@
 import time
 from collections import defaultdict
 
-import matplotlib.pyplot as plt
-import numpy as np
 import torch
 import torch.nn as nn
 from facenet_pytorch import InceptionResnetV1
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
+from torchvision import transforms
 
 from App.Embedding.EmbeddingWrapper import EmbeddingWrapper
 
 embedding_wrapper = EmbeddingWrapper()
 
+
 def run_pgd(source_tensor, target_label='Snir', epsilon=0.02, epochs=2):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device).train(False)
 
-    random_imgs_with_label = list()
-    random_imgs_with_label.append((transforms.ToPILImage()(source_tensor.squeeze(0)).convert("RGB"), 'shabi'))
+    random_imgs_with_label = [(transforms.ToPILImage()(source_tensor.squeeze(0)).convert("RGB"), 'shabi')]
 
     targets_dict = defaultdict(
         lambda: {"average_vector": torch.FloatTensor([[0] * 512]).to(device), "amount_of_vectors": 0})
@@ -53,23 +50,11 @@ def run_pgd(source_tensor, target_label='Snir', epsilon=0.02, epochs=2):
         print("target : {} , epsilon : {}, epoch : {}".format(target_label, epsilon, epoch + 1))
         for tensor in random_tensors:
             image_with_noise = TFGSM(tensor, resnet, target_embedded_vector2, epsilon, requires_grad=is_first)
-    score = diff_between_tensors(target_embedded_vector2, resnet(image_with_noise))
+    score = embedding_wrapper.get_distance_between_embeddings(target_embedded_vector2, resnet(image_with_noise))
     pgd_scores[target_label][titles[0]][epsilon][epoch + 1] = score
     print("Time took for pgd on target {} : {} seconds".format(target_label, time.time() - start_time))
     print("Score: {}".format(score))
     return transforms.ToPILImage()(image_with_noise.squeeze(0)).convert("RGB"), score
-
-
-def load_data(directory: str) -> list:
-    # Directory should contain other directories as labels and inside each directory files for each person.
-    # For example : label is taken from dir name mariel and inside dir mariel there are pictures of mariel
-    dataset = datasets.ImageFolder(directory)
-    dataset.idx_to_class = {i: c for c, i in dataset.class_to_idx.items()}
-    imgs = []
-    loader = DataLoader(dataset, collate_fn=lambda x: x[0])
-    for x, y in loader:
-        imgs.append((x, dataset.idx_to_class[y]))  # dataset.idx_to_class[y] -> label
-    return imgs
 
 
 def TFGSM(random_image: torch.Tensor, model, target_vector, epsilon, requires_grad=False):
@@ -91,28 +76,3 @@ def TFGSM(random_image: torch.Tensor, model, target_vector, epsilon, requires_gr
     image_with_noise = torch.clamp(image_with_noise, 0, 1)
     # Return the perturbed image
     return image_with_noise
-
-
-def draw_tensors(tensors, figsize, titles=[]):
-    fig = plt.figure(figsize=figsize)
-    for i, tensor in enumerate(tensors):
-        subplt = fig.add_subplot(1, len(tensors), i + 1)
-        if titles:
-            subplt.set_title(titles[i])
-        # size of tensor we are getting is (1,3,160,160) -> (3,160,160)->(160,160,3)
-        plt.imshow(np.asarray(tensor.detach()[0].permute(1, 2, 0)))
-        plt.axis('off')
-    plt.tight_layout()
-    plt.show()
-
-
-def diff_between_tensors(orig: torch.Tensor, fake: torch.Tensor):
-    orig_size = orig.size()
-    fake_size = fake.size()
-    assert orig_size == fake_size, "input tensors Must be in the same size ! orig={}, fake={}".format(orig_size,
-                                                                                                      fake_size)
-    return (orig - fake).norm().item()
-
-
-if __name__ == "__main__":
-    run_pgd()
