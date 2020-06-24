@@ -195,14 +195,13 @@ class EmbeddingWrapper(object):
                   self.name2vector.keys()}
         embedded_tensor = self.get_embedding_by_tensor(tensor)
         for key, embedded_vectors in self.name2vector.items():
-            for embedded_vector in embedded_vectors:
-                scores[key]['score'] = scores[key]['score'] +\
-                                       self.get_distance_between_embeddings(embedded_tensor, embedded_vector)
+            average_vector = self.get_mean_embedding_of_embedding_set(embedded_vectors)
+            scores[key]['score'] = self.get_distance_between_embeddings(embedded_tensor, average_vector)
 
         min_avg = 1000
         min_name = ""
         for key in scores:
-            avg = scores[key]['score'] / scores[key]['num_vectors']
+            avg = scores[key]['score']
             scores[key]['avg'] = avg
             if avg < min_avg:
                 min_avg = avg
