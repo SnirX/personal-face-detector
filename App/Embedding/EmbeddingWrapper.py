@@ -213,6 +213,9 @@ class EmbeddingWrapper(object):
 
         return min_name, min_avg, scores
 
+    def is_label_exists(self, label):
+        return label in self.name2vector.keys()
+
     def get_embeddings_by_label(self, label):
         if label in self.name2vector.keys():
             return self.name2vector.get(label)

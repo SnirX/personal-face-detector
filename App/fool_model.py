@@ -11,7 +11,7 @@ from torchvision import transforms
 
 from App.AgeGender.FaceModelWrapper import FaceModelWrapper
 from App.Embedding.EmbeddingWrapper import EmbeddingWrapper
-from App.FoolMe.exceptions.fool_me_exceptions import TooManyFacesException, NoFaceException
+from App.FoolMe.exceptions.fool_me_exceptions import TooManyFacesException, NoFaceException, NoLabelException
 from App.FoolMe.pgd import run_pgd
 
 
@@ -42,6 +42,12 @@ class FoolModel:
         self.btn_fool = tkinter.Button(btn_frame, text="Fool Model", width=10, command=self.fool_model,
                                           bg=self.from_rgb((52, 61, 70)), fg="white")
         self.btn_fool.pack(side="left", padx=10, pady=10, expand=True)
+
+        self.name_label = tkinter.Label(btn_frame, text='Target label:', background=self.from_rgb((117, 123, 129)))
+        self.name_label.pack(side="left", padx=0, pady=10, expand=True)
+
+        self.entry = tkinter.Entry(btn_frame, width=20)
+        self.entry.pack(side="left", padx=2, pady=10)
 
         image_frame = tkinter.Frame(self.window, background=self.from_rgb((117, 123, 129)))
         image_frame.place(x=100, y=75, anchor="nw", width=480, height=480)
@@ -79,7 +85,13 @@ class FoolModel:
 
     def fool_model(self):
         try:
-            fake_image_as_tensor, score = run_pgd(transforms.ToTensor()(self.original_image))
+            if self.original_image is None:
+                messagebox.showerror("Name Error", "Please select an image")
+                return None
+            if self.entry.get() == '':
+                messagebox.showerror("Name Error", "You must enter a label to fool model")
+                return None
+            fake_image_as_tensor, score = run_pgd(transforms.ToTensor()(self.original_image), self.entry.get())
             self.fake_image_as_tensor = fake_image_as_tensor
             resized_image = transforms.ToPILImage()(fake_image_as_tensor).convert("RGB").resize((480, 480), Image.ANTIALIAS)
             self.fake_image = resized_image
@@ -87,8 +99,11 @@ class FoolModel:
             self.image_gui.configure(image=tk_img)
             self.image_gui.photo_ref = tk_img
             self.fool_me = True
+        except NoLabelException as e:
+            logging.error("failed to update image, no such label in system: {}".format(self.entry.get()), e)
+            messagebox.showerror("Error", "Please choose a label which exists in the system")
         except Exception as e:
-            logging.error("failed to loaf image", e)
+            logging.error("failed to load image", e)
             messagebox.showerror("Error", "Failed to fool model model.")
 
     def _update_image(self, path):

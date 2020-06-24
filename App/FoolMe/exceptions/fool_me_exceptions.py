@@ -4,3 +4,7 @@ class TooManyFacesException(Exception):
 
 class NoFaceException(Exception):
     pass
+
+
+class NoLabelException(Exception):
+    pass
