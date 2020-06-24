@@ -42,6 +42,7 @@ def run_pgd(source_tensor, target_label, epsilon=0.045, epochs=2):
         print("target : {} , epsilon : {}, epoch : {}".format(target_label, epsilon, epoch + 1))
         for tensor in random_tensors:
             image_with_noise = TFGSM(tensor, resnet, target_embedded_vector, epsilon, requires_grad=is_first)
+        is_first = False
     score = embedding_wrapper.get_distance_between_embeddings(target_embedded_vector, resnet(image_with_noise))
     print("Time took for pgd on target {} : {} seconds".format(target_label, time.time() - start_time))
     print("Score: {}".format(score))
