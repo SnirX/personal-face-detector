@@ -26,7 +26,7 @@ class FoolModel:
         self.window.resizable(0, 0)  # Don't allow resizing in the x or y direction
         self.window.title(window_title)
 
-        self.is_fool_mode = IntVar()
+        # self.is_fool_mode = IntVar()
 
         btn_frame = tkinter.Frame(window, background=self.from_rgb((117, 123, 129)))
         btn_frame.place(x=0, y=0, anchor="nw", width=self.WIDTH, height=50)
@@ -38,10 +38,14 @@ class FoolModel:
         self.btn_predict = tkinter.Button(btn_frame, text="Predict", width=10, command=self.predict,
                                           bg=self.from_rgb((52, 61, 70)), fg="white")
         self.btn_predict.pack(side="left", padx=10, pady=10, expand=True)
+        #
+        # self.btn_fool = Checkbutton(btn_frame, text="Fool Model", variable=self.is_fool_mode,
+        #                             font=('courier', 15, 'bold'),
+        #                             highlightbackground=self.from_rgb((117, 123, 129)))
+        # self.btn_fool.pack(side="left", padx=10, pady=10, expand=True)
 
-        self.btn_fool = Checkbutton(btn_frame, text="Fool Model", variable=self.is_fool_mode,
-                                    font=('courier', 15, 'bold'),
-                                    highlightbackground=self.from_rgb((117, 123, 129)))
+        self.btn_fool = tkinter.Button(btn_frame, text="Predict", width=10, command=self.predict,
+                                          bg=self.from_rgb((52, 61, 70)), fg="white")
         self.btn_fool.pack(side="left", padx=10, pady=10, expand=True)
 
         image_frame = tkinter.Frame(self.window, background=self.from_rgb((117, 123, 129)))
@@ -64,16 +68,23 @@ class FoolModel:
         self._update_image(path=filename)
 
     def predict(self):
-        # if self.is_fool_mode.get() == 1:
-        #     messagebox.showinfo("Info", "You chose to fool me :)")
-        # else:
-        #     messagebox.showinfo("Info", "You chose not to fool me :)")
         try:
-            cropped_image_as_tensor = self._get_cropped_image_as_tensor(self.original_image)
-            tuple2 = run_pgd(cropped_image_as_tensor)
-            resized_image = tuple2[0].resize((480, 480), Image.ANTIALIAS)
+            fake_image, score = run_pgd(transforms.ToTensor()(self.original_image))
+            resized_image = fake_image.resize((480, 480), Image.ANTIALIAS)
             self.fake_image = resized_image
             tk_img = ImageTk.PhotoImage(resized_image)
+            self.image_gui.configure(image=tk_img)
+            self.image_gui.photo_ref = tk_img
+        except Exception as e:
+            logging.error("failed to loaf image", e)
+            messagebox.showerror("Error", "Failed to fool model model.")
+
+    def _update_image(self, path):
+        try:
+            img = Image.open(path).resize((480, 480), Image.ANTIALIAS)
+            cropped_image_as_tensor = self._get_cropped_image_as_tensor(img)
+            self.original_image = transforms.ToPILImage()(cropped_image_as_tensor).convert("RGB").resize((480, 480), Image.ANTIALIAS)
+            tk_img = ImageTk.PhotoImage(self.original_image)
             self.image_gui.configure(image=tk_img)
             self.image_gui.photo_ref = tk_img
         except NoFaceException as e:
@@ -82,17 +93,6 @@ class FoolModel:
         except TooManyFacesException as e:
             logging.error("failed to update image, more than 1 face in image", e)
             messagebox.showerror("Error", "Please choose an image with one face :)")
-        except Exception as e:
-            logging.error("failed to update image", e)
-            messagebox.showerror("Error", "Failed fetching image.")
-
-    def _update_image(self, path):
-        try:
-            img = Image.open(path).resize((480, 480), Image.ANTIALIAS)
-            tk_img = ImageTk.PhotoImage(img)
-            self.original_image = img
-            self.image_gui.configure(image=tk_img)
-            self.image_gui.photo_ref = tk_img
         except Exception as e:
             logging.error("failed to update image", e)
             messagebox.showerror("Error", "Failed fetching image.")
