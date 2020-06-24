@@ -13,7 +13,7 @@ resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device).train(False)
 embedding_wrapper = EmbeddingWrapper()
 
 
-def run_pgd(source_tensor, target_label, epsilon=0.045, epochs=3):
+def run_pgd(source_tensor, target_label, epsilon=0.02, epochs=3):
     if not embedding_wrapper.is_label_exists(target_label):
         raise NoLabelException()
 
