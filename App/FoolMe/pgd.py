@@ -31,27 +31,15 @@ def run_pgd(source_tensor, target_label='Snir', epsilon=0.02, epochs=2):
         stacked_tensor = torch.stack([tensor]).to(device)  # Tensor([1,2,3]) -> Tensor([[1,2,3]])
         random_tensors.append(stacked_tensor)
 
-    random_people_labels = []
-    for i, tpl in enumerate(random_imgs_with_label):
-        random_people_labels.append(tpl[1])
-
-    epsilons = [epsilon]
-    target_embedded_vector2 = targets_dict.get(target_label).get('average_vector').unsqueeze(0)
-
-    titles = random_people_labels
-    pgd_scores = {
-        target_label: {random_label: {eps: defaultdict(lambda: float) for eps in epsilons} for random_label in titles}
-        for target_label in targets_dict.keys()}
+    target_embedded_vector = targets_dict.get(target_label).get('average_vector').unsqueeze(0)
 
     start_time = time.time()
-    epsilon = epsilons.pop()
     is_first = True
     for epoch in range(epochs):
         print("target : {} , epsilon : {}, epoch : {}".format(target_label, epsilon, epoch + 1))
         for tensor in random_tensors:
-            image_with_noise = TFGSM(tensor, resnet, target_embedded_vector2, epsilon, requires_grad=is_first)
-    score = embedding_wrapper.get_distance_between_embeddings(target_embedded_vector2, resnet(image_with_noise))
-    pgd_scores[target_label][titles[0]][epsilon][epoch + 1] = score
+            image_with_noise = TFGSM(tensor, resnet, target_embedded_vector, epsilon, requires_grad=is_first)
+    score = embedding_wrapper.get_distance_between_embeddings(target_embedded_vector, resnet(image_with_noise))
     print("Time took for pgd on target {} : {} seconds".format(target_label, time.time() - start_time))
     print("Score: {}".format(score))
     return transforms.ToPILImage()(image_with_noise.squeeze(0)).convert("RGB"), score
