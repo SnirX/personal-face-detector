@@ -86,10 +86,10 @@ class FoolModel:
     def fool_model(self):
         try:
             if self.original_image is None:
-                messagebox.showerror("Name Error", "Please select an image")
+                messagebox.showerror("Error", "Please select an image")
                 return None
             if self.entry.get() == '':
-                messagebox.showerror("Name Error", "You must enter a label to fool model")
+                messagebox.showerror("Error", "You must enter a label to fool model")
                 return None
             fake_image_as_tensor, score = run_pgd(transforms.ToTensor()(self.original_image), self.entry.get())
             self.fake_image_as_tensor = fake_image_as_tensor
