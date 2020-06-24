@@ -42,7 +42,7 @@ def run_pgd(source_tensor, target_label='Snir', epsilon=0.02, epochs=2):
     score = embedding_wrapper.get_distance_between_embeddings(target_embedded_vector, resnet(image_with_noise))
     print("Time took for pgd on target {} : {} seconds".format(target_label, time.time() - start_time))
     print("Score: {}".format(score))
-    return transforms.ToPILImage()(image_with_noise.squeeze(0)).convert("RGB"), score
+    return image_with_noise.squeeze(0), score
 
 
 def TFGSM(random_image: torch.Tensor, model, target_vector, epsilon, requires_grad=False):

@@ -10,6 +10,7 @@ from PIL import Image, ImageTk
 from torchvision import transforms
 
 from App.AgeGender.FaceModelWrapper import FaceModelWrapper
+from App.Embedding.EmbeddingWrapper import EmbeddingWrapper
 from App.FoolMe.exceptions.fool_me_exceptions import TooManyFacesException, NoFaceException
 from App.FoolMe.pgd import run_pgd
 
@@ -21,12 +22,11 @@ class FoolModel:
 
     def __init__(self, window, window_title):
         self.face_model_wrapper = FaceModelWrapper()
+        self.embedding_wrapper = EmbeddingWrapper()
         self.window = window
         self.window.geometry("{}x{}".format(self.WIDTH, self.HEIGHT))  # set the size of the app to be 500x500
         self.window.resizable(0, 0)  # Don't allow resizing in the x or y direction
         self.window.title(window_title)
-
-        # self.is_fool_mode = IntVar()
 
         btn_frame = tkinter.Frame(window, background=self.from_rgb((117, 123, 129)))
         btn_frame.place(x=0, y=0, anchor="nw", width=self.WIDTH, height=50)
@@ -38,13 +38,8 @@ class FoolModel:
         self.btn_predict = tkinter.Button(btn_frame, text="Predict", width=10, command=self.predict,
                                           bg=self.from_rgb((52, 61, 70)), fg="white")
         self.btn_predict.pack(side="left", padx=10, pady=10, expand=True)
-        #
-        # self.btn_fool = Checkbutton(btn_frame, text="Fool Model", variable=self.is_fool_mode,
-        #                             font=('courier', 15, 'bold'),
-        #                             highlightbackground=self.from_rgb((117, 123, 129)))
-        # self.btn_fool.pack(side="left", padx=10, pady=10, expand=True)
 
-        self.btn_fool = tkinter.Button(btn_frame, text="Predict", width=10, command=self.predict,
+        self.btn_fool = tkinter.Button(btn_frame, text="Fool Model", width=10, command=self.fool_model,
                                           bg=self.from_rgb((52, 61, 70)), fg="white")
         self.btn_fool.pack(side="left", padx=10, pady=10, expand=True)
 
@@ -57,6 +52,9 @@ class FoolModel:
 
         self.original_image = None
         self.fake_image = None
+        self.fool_me = False
+        self.fake_image_as_tensor = None
+        self.cropped_image_as_tensor = None
 
         self.window.mainloop()
 
@@ -68,13 +66,27 @@ class FoolModel:
         self._update_image(path=filename)
 
     def predict(self):
+        if self.fool_me is True and self.fake_image_as_tensor is not None:
+            predicted_name, score, _ = self.embedding_wrapper.who_am_i(tensor=self.fake_image_as_tensor)
+            print("Prediction - {}, Score - {}".format(predicted_name, score))
+            messagebox.showinfo("Info", "Prediction - {}".format(predicted_name))
+        elif self.fool_me is False and self.original_image is not None:
+            predicted_name, score, _ = self.embedding_wrapper.who_am_i(tensor=transforms.ToTensor()(self.original_image))
+            print("Prediction - {}, Score - {}".format(predicted_name, score))
+            messagebox.showinfo("Info", "Prediction - {}".format(predicted_name))
+        else:
+            messagebox.showerror("Error", "Please select image")
+
+    def fool_model(self):
         try:
-            fake_image, score = run_pgd(transforms.ToTensor()(self.original_image))
-            resized_image = fake_image.resize((480, 480), Image.ANTIALIAS)
+            fake_image_as_tensor, score = run_pgd(transforms.ToTensor()(self.original_image))
+            self.fake_image_as_tensor = fake_image_as_tensor
+            resized_image = transforms.ToPILImage()(fake_image_as_tensor).convert("RGB").resize((480, 480), Image.ANTIALIAS)
             self.fake_image = resized_image
             tk_img = ImageTk.PhotoImage(resized_image)
             self.image_gui.configure(image=tk_img)
             self.image_gui.photo_ref = tk_img
+            self.fool_me = True
         except Exception as e:
             logging.error("failed to loaf image", e)
             messagebox.showerror("Error", "Failed to fool model model.")
@@ -82,11 +94,12 @@ class FoolModel:
     def _update_image(self, path):
         try:
             img = Image.open(path).resize((480, 480), Image.ANTIALIAS)
-            cropped_image_as_tensor = self._get_cropped_image_as_tensor(img)
-            self.original_image = transforms.ToPILImage()(cropped_image_as_tensor).convert("RGB").resize((480, 480), Image.ANTIALIAS)
-            tk_img = ImageTk.PhotoImage(self.original_image)
+            self.cropped_image_as_tensor = self._get_cropped_image_as_tensor(img)
+            self.original_image = transforms.ToPILImage()(self.cropped_image_as_tensor).convert("RGB")
+            tk_img = ImageTk.PhotoImage(self.original_image.resize((480, 480), Image.ANTIALIAS))
             self.image_gui.configure(image=tk_img)
             self.image_gui.photo_ref = tk_img
+            self.fool_me = False
         except NoFaceException as e:
             logging.error("failed to update image, no face in image", e)
             messagebox.showerror("Error", "Please choose image with a face :)")
