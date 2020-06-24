@@ -75,10 +75,10 @@ class FoolModel:
     def _update_image(self, path):
         try:
             img = Image.open(path).resize((480, 480), Image.ANTIALIAS)
-            # tk_img = ImageTk.PhotoImage(img) # TODO: original line
-            cropped_image_as_tensor = self.get_image_as_tensor_from_camera()
-            tuple2 = run_pgd(cropped_image_as_tensor)  # TODO: to return
-            tk_img = ImageTk.PhotoImage(tuple2[0])  # TODO: to return
+            cropped_image_as_tensor = self.get_cropped_image_as_tensor(img)
+            tuple2 = run_pgd(cropped_image_as_tensor)
+            resized_image = tuple2[0].resize((480, 480), Image.ANTIALIAS)
+            tk_img = ImageTk.PhotoImage(resized_image)
             self.image_gui.configure(image=tk_img)
             self.image_gui.photo_ref = tk_img
         except Exception as e:
@@ -91,9 +91,18 @@ class FoolModel:
         if faces:
             for index in range(len(faces)):
                 face = faces[index]
-                bbox = bboxes[index]
                 face_emb = transforms.ToTensor()(
                     Image.fromarray(cv2.resize(cv2.cvtColor(face, cv2.COLOR_BGR2RGB), (160, 160))))
+                return face_emb
+        raise RuntimeError("No faces in camera")
+
+    def get_cropped_image_as_tensor(self, image) -> torch.Tensor:
+        frame_face, faces, bboxes = self.face_model_wrapper.get_face_box(image)
+        if faces:
+            for index in range(len(faces)):
+                face = faces[index]
+                face_emb = transforms.ToTensor()(
+                    Image.fromarray(cv2.resize(face, (160, 160))))
                 return face_emb
         raise RuntimeError("No faces in camera")
 
