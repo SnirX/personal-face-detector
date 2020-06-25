@@ -195,14 +195,13 @@ class EmbeddingWrapper(object):
                   self.name2vector.keys()}
         embedded_tensor = self.get_embedding_by_tensor(tensor)
         for key, embedded_vectors in self.name2vector.items():
-            for embedded_vector in embedded_vectors:
-                scores[key]['score'] = scores[key]['score'] +\
-                                       self.get_distance_between_embeddings(embedded_tensor, embedded_vector)
+            average_vector = self.get_mean_embedding_of_embedding_set(embedded_vectors)
+            scores[key]['score'] = self.get_distance_between_embeddings(embedded_tensor, average_vector)
 
         min_avg = 1000
         min_name = ""
         for key in scores:
-            avg = scores[key]['score'] / scores[key]['num_vectors']
+            avg = scores[key]['score']
             scores[key]['avg'] = avg
             if avg < min_avg:
                 min_avg = avg
@@ -213,6 +212,9 @@ class EmbeddingWrapper(object):
 
         return min_name, min_avg, scores
 
+    def is_label_exists(self, label):
+        return label in self.name2vector.keys()
+
     def get_embeddings_by_label(self, label):
         if label in self.name2vector.keys():
             return self.name2vector.get(label)
@@ -221,6 +223,9 @@ class EmbeddingWrapper(object):
 
     def get_embedding_by_tensor(self, tensor: torch.Tensor):
         return self.resnet(tensor).detach().cpu()
+
+    def get_embedding_by_tensor_without_detach(self, tensor: torch.Tensor):
+        return self.resnet(tensor)
 
     def get_mean_embedding_of_embedding_set(self, embeddings_as_set: set):
         embeddings_sum = torch.FloatTensor([0] * 512).to(self.device)  # ResNet last layer is 512
