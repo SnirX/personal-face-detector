@@ -2,7 +2,7 @@ import logging
 import os
 import tkinter
 from tkinter import messagebox
-from tkinter.filedialog import askopenfilename, IntVar, Checkbutton
+from tkinter.filedialog import askopenfilename
 
 import cv2
 import torch
@@ -104,7 +104,7 @@ class FoolModel:
             messagebox.showerror("Error", "Please choose a label which exists in the system")
         except Exception as e:
             logging.error("failed to load image", e)
-            messagebox.showerror("Error", "Failed to fool model model.")
+            messagebox.showerror("Error", "Failed to fool model.")
 
     def _update_image(self, path):
         try:
