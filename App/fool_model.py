@@ -128,8 +128,6 @@ class FoolModel:
     def _get_cropped_image_as_tensor(self, image) -> torch.Tensor:
         frame_face, faces, bboxes = self.face_model_wrapper.get_face_box(image)
         if faces:
-            if len(faces) > 1:
-                raise TooManyFacesException()
             for index in range(len(faces)):
                 face = faces[index]
                 face_emb = transforms.ToTensor()(
