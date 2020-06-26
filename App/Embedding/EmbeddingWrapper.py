@@ -222,7 +222,7 @@ class EmbeddingWrapper(object):
         return set()
 
     def get_embedding_by_tensor(self, tensor: torch.Tensor):
-        return self.resnet(tensor).detach().cpu()
+        return self.resnet(tensor).detach().to(self.device)
 
     def get_embedding_by_tensor_without_detach(self, tensor: torch.Tensor):
         return self.resnet(tensor)

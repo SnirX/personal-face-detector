@@ -93,7 +93,7 @@ class FoolModel:
                 return None
             fake_image_as_tensor, score = run_pgd(transforms.ToTensor()(self.original_image), self.entry.get())
             self.fake_image_as_tensor = fake_image_as_tensor
-            resized_image = transforms.ToPILImage()(fake_image_as_tensor).convert("RGB").resize((480, 480), Image.ANTIALIAS)
+            resized_image = transforms.ToPILImage()(fake_image_as_tensor.cpu()).convert("RGB").resize((480, 480), Image.ANTIALIAS)
             self.fake_image = resized_image
             tk_img = ImageTk.PhotoImage(resized_image)
             self.image_gui.configure(image=tk_img)
