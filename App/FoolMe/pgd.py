@@ -7,8 +7,9 @@ from torchvision import transforms
 
 from App.Embedding.EmbeddingWrapper import EmbeddingWrapper
 from App.FoolMe.exceptions.fool_me_exceptions import NoLabelException
+from Utils.torch_utils import get_torch_device
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = get_torch_device()
 resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device).train(False)
 embedding_wrapper = EmbeddingWrapper()
 
